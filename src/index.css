@@ -38,6 +38,14 @@ body {
   height: 50px;
   animation: spin 1s linear infinite;
 }
+input::placeholder {
+  color: white; /* light gray color */
+}
+
+/* Placeholder text color for focused input */
+input:focus::placeholder {
+  color: #ffffff; /* white color */
+}
 
 @keyframes spin {
   0% { transform: rotate(0deg); }

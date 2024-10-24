@@ -1,32 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/img/header-img/cricket-logo.svg';
 import menu from '../assets/img/header-img/cricket-menu.svg';
+import { RxCrossCircled } from "react-icons/rx";
 import profile from '../assets/img/header-img/cricket-profile.png';
-import search from '../assets/img/header-img/cricket-search.svg';
-import search2 from '../assets/img/header-img/cricket-search-2.svg';
+import { CiSearch } from "react-icons/ci";
 
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const menuRef = useRef(null);
-    const searchRef = useRef(null);
 
     const toggleMenu = () => {
         setIsMenuOpen(prev => !prev);
         if (isSearchOpen) setIsSearchOpen(false);
     };
 
-    const toggleSearch = () => {
-        setIsSearchOpen(prev => !prev);
-        if (isMenuOpen) setIsMenuOpen(false);
-    };
-
     const handleClickOutside = (event) => {
-        if (menuRef.current && !menuRef.current.contains(event.target)) {
-            setIsMenuOpen(false);
-        }
-        if (searchRef.current && !searchRef.current.contains(event.target)) {
+        if (!event.target.closest('.search-container') && isSearchOpen) {
             setIsSearchOpen(false);
         }
     };
@@ -36,46 +26,36 @@ const Header = () => {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, []);
+    }, [isSearchOpen]);
 
     return (
         <div className='flex items-center justify-between bg-[#0D8888] py-7 px-4'>
             <div className='flex items-center gap-5'>
                 <div className='w-8' onClick={toggleMenu}>
-                    <img className='w-full' src={menu} alt="Menu" />
+                    {!isMenuOpen ? <img className='w-full' src={menu} alt="Menu" /> : <RxCrossCircled size={32} color="white" />}
                 </div>
                 <Link to="/" className='w-11'>
                     <img className='w-full' src={logo} alt="Logo" />
                 </Link>
             </div>
             <div className='flex items-center gap-5 relative'>
-                {!isSearchOpen ? (
-                    <div className='search w-8' onClick={toggleSearch}>
-                        <img className='w-full' src={search} alt="Search" />
-                    </div>
-                ) : (
-                    <div ref={searchRef} className='absolute top-16 right-10 z-10 bg-gray-200 rounded-full'>
-                        <div className='relative flex items-center py-1 px-4  pr-8 border rounded-full '>
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className='bg-transparent py-0 outline-none border-none text-[#9ca3af] pl-3'
-                            />
-                            <img
-                                className='search-2 w-8 pr-1'
-                                src={search2}
-                                alt="Search Icon"
-                            />
-                        </div>
-                    </div>
-                )}
+                <div className={`border border-white flex items-center py-2 w-fit px-2  justify-center search-container ${isSearchOpen ? 'rounded-md ' : 'rounded-full'}`}>
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className={`bg-transparent py-0 outline-none border-none text-white transition-all duration-300 ease-in-out text-sm ${isSearchOpen ? 'w-full min-w-[100px] ' : 'w-0'} overflow-hidden`}
+                        onFocus={() => setIsSearchOpen(true)}
+                    />
+                    <span onClick={() => setIsSearchOpen(true)}>
+                        <CiSearch size={20} className='text-white' />
+                    </span>
+                </div>
                 <div className='w-8'>
                     <img className='w-full' src={profile} alt="Profile" />
                 </div>
             </div>
-
             {isMenuOpen && (
-                <div ref={menuRef} className='absolute top-20 left-0 right-0 bg-white p-4 rounded-md z-10'>
+                <div className='absolute top-20 left-0 right-0 bg-white p-4 rounded-md z-10'>
                     <ul className='flex flex-col gap-2'>
                         {["Schedule", "Live Score", "Teams", "Series", 'History'].map(item => (
                             <li key={item} className='border-b py-3'>

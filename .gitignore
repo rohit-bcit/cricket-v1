@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 build/
+dist/
 
 # Configuration files
 .env
@@ -23,5 +24,12 @@ yarn-error.log*
 *.sublime-project
 *.sublime-workspace
 
+# Firebase files
+.firebase/
+firebase-debug.log
+.firebaserc
+.firebase.json
+
 # Miscellaneous
 *.swp
+firebase.json
