@@ -55,7 +55,7 @@ function SingleBlog() {
       <ul className="text-sm text-[#292929] my-2 flex flex-wrap gap-x-2">
         <li>
           by
-          <span className="text-[#0D8888] font-medium text-sm mb-4 "> admin</span>
+          <span className="text-[#0D8888] font-medium text-sm mb-4 "> {blog.author}</span>
         </li>
         <li className="text-nowrap">
           • Published on

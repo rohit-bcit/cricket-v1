@@ -26,6 +26,12 @@ const fetchTags = async (tagIds) => {
   return tags;
 };
 
+// Helper function for fetching author data
+const fetchAuthor = async (authorId) => {
+  const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/users/${authorId}`);
+  return response.data.name;
+};
+
 // Asynchronous thunk action for fetching a single post by slug
 export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (slug, { rejectWithValue }) => {
   try {
@@ -42,6 +48,11 @@ export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (
       if (blogData.tags && blogData.tags.length > 0) {
         const tags = await fetchTags(blogData.tags);
         postDetails = { ...postDetails, tags };
+      }
+
+      if (blogData.author) {
+        const author = await fetchAuthor(blogData.author);
+        postDetails = { ...postDetails, author };
       }
 
       return postDetails;
