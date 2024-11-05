@@ -1,50 +1,100 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import Loader from '../components/Loader';
+import React, { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchPostBySlug } from "../redux/features/postSlice";
+import Loader from "../components/Loader";
+
+function decodeHTMLEntities(text) {
+  const textArea = document.createElement("textarea");
+  textArea.innerHTML = text;
+  return textArea.value;
+}
 
 function SingleBlog() {
   const { slug } = useParams();
-  const [blog, setBlog] = useState(null);
-  const [featuredImage, setFeaturedImage] = useState('');
+  const dispatch = useDispatch();
+  const { blog, loading, error } = useSelector((state) => state.posts);
+  console.log(blog);
 
   useEffect(() => {
-    const fetchBlogData = async () => {
-      // Fetch blog data by slug
-      const blogResponse = await fetch(`https://cricketscore.io/wp-json/wp/v2/posts?slug=${slug}`);
-      const blogDataArray = await blogResponse.json();
-      
-      
-      if (blogDataArray.length > 0) {
-        const blogData = blogDataArray[0];
-        setBlog(blogData);
-        if (blogData.featured_media) {
-          const imageUrl = await fetchFeaturedImage(blogData.featured_media);
-          setFeaturedImage(imageUrl);
-        }
-      }
-    };
-    fetchBlogData(); // Corrected function call
-  }, [slug]);
+    dispatch(fetchPostBySlug(slug));
+  }, [dispatch, slug]);
 
-  if (!blog) return <div><Loader/></div>;
+  if (loading)
+    return (
+      <div>
+        <Loader />
+      </div>
+    );
+  if (error) return <div>Error: {error}</div>;
+
+  const decodedTitle = blog ? decodeHTMLEntities(blog.title.rendered) : "";
+  const decodedContent = blog ? decodeHTMLEntities(blog.content.rendered) : "";
+  const decodedCaption = blog ? decodeHTMLEntities(blog.imageCaption) : "";
+  const publishedDate = blog
+    ? new Date(blog.date).toLocaleDateString("en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "";
+  const publishedTime = blog
+    ? new Date(blog.date).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      })
+    : "";
 
   return (
-    <div className='p-4'>
-      {featuredImage && (
-        <img src={featuredImage} alt={blog.title.rendered} className='w-full rounded-lg mb-4' />
+    <div className="p-4 mb-[70px] mt-2">
+      <h1 className="text-lg font-bold mb-2 text-[#292929] leading-[1.15]">
+        {decodedTitle}
+      </h1>
+      <ul className="text-sm text-[#292929] my-2 flex flex-wrap gap-x-2">
+        <li>
+          by
+          <span className="text-[#0D8888] font-medium text-sm mb-4 "> admin</span>
+        </li>
+        <li className="text-nowrap">
+          • Published on
+          <span className="text-[#0D8888] font-medium text-sm text-nowrap"> {publishedDate},</span>
+        </li>
+        <li>
+          <span className="text-[#0D8888] font-medium text-sm ">{publishedTime}</span>
+        </li>
+      </ul>
+      <div className="flex items-center gap-4">
+        <div>
+          <i className="fab fa-facebook" aria-hidden="true"></i>
+        </div>
+      </div>
+      {blog?.featuredImage && (
+        <>
+          <img src={blog.featuredImage} alt={decodedTitle} className="w-full rounded-[4px] mb-2" />
+          {decodedCaption && (
+            <div
+              className="text-sm text-[#5c5c5c] font-medium mb-4"
+              dangerouslySetInnerHTML={{ __html: decodedCaption }}
+            />
+          )}
+        </>
       )}
-      <h1 className='text-2xl font-bold mb-2'>{blog.title.rendered}</h1>
-      <p className='text-gray-600 mb-4'>{new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-      <div dangerouslySetInnerHTML={{ __html: blog.content.rendered }} className='blog-content' />
+      <div dangerouslySetInnerHTML={{ __html: decodedContent }} className="blog-content text-sm text-[#292929]" />
+      <div className="my-5">
+        <h2 className="text-lg font-semibold">Tags</h2>
+        <div className="flex gap-1 flex-wrap my-4">
+          {blog?.tags &&
+            blog.tags.map((tag, index) => (
+              <div key={index} className="bg-[#0D8888] capitalize text-white text-sm rounded p-2">
+                {decodeHTMLEntities(tag)}
+              </div>
+            ))}
+        </div>
+      </div>
     </div>
   );
-}
-
-// Fetch featured image function
-async function fetchFeaturedImage(mediaId) {
-  const response = await fetch(`https://cricketscore.io/wp-json/wp/v2/media/${mediaId}`);
-  const mediaData = await response.json();
-  return mediaData.source_url;
 }
 
 export default SingleBlog;

@@ -42,9 +42,16 @@ input::placeholder {
   color: white; /* light gray color */
 }
 
+.cb-nws-dtl-itms {
+  margin: 15px 0px;
+}
 /* Placeholder text color for focused input */
 input:focus::placeholder {
   color: #ffffff; /* white color */
+}
+
+.cb-news-copyright {
+  margin-bottom: 20px;
 }
 
 @keyframes spin {

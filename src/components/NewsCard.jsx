@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+function decodeHTMLEntities(text) {
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+}
+
 function NewsCard({ blog }) {
   const [featuredImage, setFeaturedImage] = useState('');
  
@@ -19,7 +25,8 @@ function NewsCard({ blog }) {
 
   const publishedDate = new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const slug = blog.slug;
-
+  const decodedTitle = decodeHTMLEntities(blog.title.rendered);
+  const decodedExcerpt = decodeHTMLEntities(blog.excerpt.rendered.replace(/<p>|<\/p>/g, ''));
 
   return (
     <Link to={`/${slug}`} className='flex flex-col border rounded-lg p-3 pb-[15px] border-[#EDEDED]'>
@@ -27,10 +34,10 @@ function NewsCard({ blog }) {
         <img src={featuredImage} alt={blog.title.rendered} className='rounded-lg' />
       )}
       <h3 className='font-medium text-[16px] leading-[22px] mt-4 text-[#292929]'>
-        {blog.title.rendered}
+        {decodedTitle}
       </h3>
-      <p className='text-[14px] leading-[17px] mt-2 text-[#5C5C5C]'>
-        {blog.excerpt.rendered.replace(/<p>|<\/p>/g, '')}
+      <p className='text-[14px] leading-[17px] mt-2 text-[#5C5C5C] max-h-9 text-ellipsis overflow-hidden'>
+        {decodedExcerpt}
       </p>
       <div className='text-[12px] leading-[17px] text-[#5C5C5C] font-normal my-3'>
         {publishedDate}
