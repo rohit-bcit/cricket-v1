@@ -95,7 +95,7 @@ function Latest() {
                     </Link>
                 );
             })}
-            <Link className='my-4 text-center py-2 px-4 flex items-center justify-center gap-2 bg-[#0d8888] text-white uppercase rounded-md font-medium' to = "/news"> More News <span ><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 32 32" fill="none"><path d="M8 22.6668L16 16.0002L8 9.3335" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M16 22.6668L24 16.0002L16 9.3335" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></Link>
+          <Link className='my-4 text-center py-2 px-4 flex items-center justify-center gap-2 bg-[#0d8888] text-white uppercase rounded-md font-medium' to="/news"> More News <span> <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 32 32" fill="none"> <path d="M8 22.6668L16 16.0002L8 9.3335" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> <path d="M16 22.6668L24 16.0002L16 9.3335" stroke="white" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </svg> </span> </Link>
         </div>
     );
 }
