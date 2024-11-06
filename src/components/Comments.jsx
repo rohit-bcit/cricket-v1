@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFacebookComments, postFacebookComment } from '../redux/features/commentSlice'; // Import the thunks
+// import { fetchFacebookComments, postFacebookComment } from '../redux/features/commentSlice'; // Import the thunks
 
 function Comments({ postId, postUrl }) { // postUrl is passed as a prop
   const dispatch = useDispatch();
@@ -10,43 +10,43 @@ function Comments({ postId, postUrl }) { // postUrl is passed as a prop
   const [sortOrder, setSortOrder] = useState('newest'); // state to manage sorting
 
   // Fetch comments when the component mounts or when postId changes
-  useEffect(() => {
-    dispatch(fetchFacebookComments(postId)); // Fetch comments from Redux when postId changes
+  // useEffect(() => {
+  //   dispatch(fetchFacebookComments(postId)); // Fetch comments from Redux when postId changes
 
-    // Load the Facebook SDK script only once
-    if (window.FB) {
-      window.FB.XFBML.parse(); // Re-parse Facebook elements
-    } else {
-      const script = document.createElement('script');
-      script.src = "https://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v21.0";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        if (window.FB) {
-          window.FB.XFBML.parse(); // Re-parse Facebook elements after SDK is loaded
-        }
-      };
-      document.body.appendChild(script);
-    }
-  }, [dispatch, postId]);
+  //   // Load the Facebook SDK script only once
+  //   if (window.FB) {
+  //     window.FB.XFBML.parse(); // Re-parse Facebook elements
+  //   } else {
+  //     const script = document.createElement('script');
+  //     script.src = "https://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v21.0";
+  //     script.async = true;
+  //     script.defer = true;
+  //     script.onload = () => {
+  //       if (window.FB) {
+  //         window.FB.XFBML.parse(); // Re-parse Facebook elements after SDK is loaded
+  //       }
+  //     };
+  //     document.body.appendChild(script);
+  //   }
+  // }, [dispatch, postId]);
 
   // Handle comment submission via Redux
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return; // Don't submit if comment is empty
+    // if (!newComment.trim()) return; // Don't submit if comment is empty
 
-    const commentData = {
-      post: postId,
-      content: newComment,
-      author_name: 'Anonymous', // Replace with actual user's name if logged in
-      author_email: 'anonymous@example.com', // Replace with actual user's email if logged in
-    };
+    // const commentData = {
+    //   post: postId,
+    //   content: newComment,
+    //   author_name: 'Anonymous', // Replace with actual user's name if logged in
+    //   author_email: 'anonymous@example.com', // Replace with actual user's email if logged in
+    // };
 
-    // Dispatch postFacebookComment action with postId and commentData
-    dispatch(postFacebookComment({ postId, commentData }));
+    // // Dispatch postFacebookComment action with postId and commentData
+    // dispatch(postFacebookComment({ postId, commentData }));
 
-    setNewComment(''); // Clear the comment input after posting
-    setIsTextareaFocused(false); // Optionally blur the textarea after submitting
+    // setNewComment(''); // Clear the comment input after posting
+    // setIsTextareaFocused(false); // Optionally blur the textarea after submitting
   };
 
   // Handle comment sorting
@@ -56,12 +56,12 @@ function Comments({ postId, postUrl }) { // postUrl is passed as a prop
 
   // Sort comments by newest or oldest
   const sortedComments = [...comments].sort((a, b) => {
-    if (sortOrder === 'newest') {
-      return new Date(b.date) - new Date(a.date); // Newest first
-    } else if (sortOrder === 'oldest') {
-      return new Date(a.date) - new Date(b.date); // Oldest first
-    }
-    return 0; // Default case
+    // if (sortOrder === 'newest') {
+    //   return new Date(b.date) - new Date(a.date); // Newest first
+    // } else if (sortOrder === 'oldest') {
+    //   return new Date(a.date) - new Date(b.date); // Oldest first
+    // }
+    // return 0; // Default case
   });
 
   return (
@@ -132,13 +132,6 @@ function Comments({ postId, postUrl }) { // postUrl is passed as a prop
         ))}
       </div>
 
-      {/* Render the Facebook comments plugin */}
-      <div
-        className="fb-comments"
-        data-href={postUrl} // Dynamically set the post URL
-        data-width="500" // Set the width of the comments section
-        data-numposts="5" // Number of comments to show
-      ></div>
     </div>
   );
 }
