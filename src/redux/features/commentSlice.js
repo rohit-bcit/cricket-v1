@@ -1,55 +1,45 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Thunk for fetching comments
-export const fetchComments = createAsyncThunk(
-  'comments/fetchComments',
+// Thunk for fetching Facebook comments
+export const fetchFacebookComments = createAsyncThunk(
+  'comments/fetchFacebookComments',
   async (postId, { rejectWithValue }) => {
-    if (!postId) {
-      // If postId is invalid (undefined or null), reject the request
-      return rejectWithValue('Post ID is missing');
-    }
-
     try {
       const response = await axios.get(
-        `https://cricketscore.io/wp-json/wp/v2/comments?post=${postId}`
+        `https://graph.facebook.com/v12.0/${postId}/comments`, 
+        {
+          params: {
+            access_token: 'your-facebook-access-token', // Get this through Facebook Login
+          }
+        }
       );
-      return response.data;
+      return response.data.data; // return comments
     } catch (error) {
-      return rejectWithValue('Error fetching comments');
+      return rejectWithValue('Error fetching Facebook comments');
     }
   }
 );
 
-// Thunk for posting a comment
-export const postComment = createAsyncThunk(
-  'comments/postComment',
-  async ({ postId, commentData }, { rejectWithValue }) => {
-    if (!postId) {
-      return rejectWithValue('Post ID is missing');
-    }
-
-    const auth = {
-      headers: {
-        'Authorization': `Basic ${btoa('your-username' + ':' + 'your-application-password')}`, // Basic Auth or Application Password
-      },
-    };
-
+// Thunk for posting Facebook comments
+export const postFacebookComment = createAsyncThunk(
+  'comments/postFacebookComment',
+  async ({ postId, message }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `https://cricketscore.io/wp-json/wp/v2/comments`,
+        `https://graph.facebook.com/v12.0/${postId}/comments`,
         {
-          post: postId, // Ensure postId is included in the body
-          ...commentData, // Spread the other comment data here
-        },
-        auth
+          message,
+          access_token: 'your-facebook-access-token', // Use a valid access token
+        }
       );
-      return response.data; // Return the new comment data
+      return response.data; // return the posted comment
     } catch (error) {
-      return rejectWithValue('Error posting comment');
+      return rejectWithValue('Error posting Facebook comment');
     }
   }
 );
+
 // Slice
 const commentsSlice = createSlice({
   name: 'comments',
@@ -60,32 +50,28 @@ const commentsSlice = createSlice({
   },
   reducers: {},
   extraReducers: (builder) => {
-    // Handle fetching comments
     builder
-      .addCase(fetchComments.pending, (state) => {
-        state.loading = true;
-        state.error = null; // Reset error on new request
-      })
-      .addCase(fetchComments.fulfilled, (state, action) => {
-        state.loading = false;
-        state.comments = action.payload; // Set fetched comments to state
-      })
-      .addCase(fetchComments.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload; // Handle error state
-      });
-
-    // Handle posting a comment
-    builder
-      .addCase(postComment.pending, (state) => {
+      .addCase(fetchFacebookComments.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(postComment.fulfilled, (state, action) => {
+      .addCase(fetchFacebookComments.fulfilled, (state, action) => {
         state.loading = false;
-        state.comments.push(action.payload); // Add new comment to state
+        state.comments = action.payload; // Set Facebook comments to state
       })
-      .addCase(postComment.rejected, (state, action) => {
+      .addCase(fetchFacebookComments.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload; // Handle error state
+      })
+      .addCase(postFacebookComment.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(postFacebookComment.fulfilled, (state, action) => {
+        state.loading = false;
+        state.comments.push(action.payload); // Add the new comment to state
+      })
+      .addCase(postFacebookComment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload; // Handle error state
       });

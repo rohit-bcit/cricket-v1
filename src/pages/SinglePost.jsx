@@ -5,7 +5,8 @@ import { fetchPostBySlug } from '../redux/features/postSlice';
 import Loader from '../components/Loader';
 import TableOfContent from '../components/TableOfContent';
 import Sidebar from '../components/Sidebar';
-import { CiFacebook } from "react-icons/ci";
+import { TiSocialFacebook } from "react-icons/ti";
+import { FaTwitter } from "react-icons/fa";
 
 function decodeHTMLEntities(text) {
   const textArea = document.createElement('textarea');
@@ -49,9 +50,14 @@ function SingleBlog() {
   }, [blog, decodedContent]);
 
   // Error and loading states
-  if (loading) return <div><Loader text="Loading blog post..." /></div>;
+  if (loading) return <div><Loader /></div>;
   if (error) return <div role="alert" className="text-red-500">Unable to load blog post: {error}</div>;
   if (!blog) return <div>No blog post found.</div>;
+
+  // Share URLs
+  const postUrl = window.location.href; // Get the current URL
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(decodedTitle)}`;
 
   return (
     <div className="p-4 mb-[70px] mt-2">
@@ -64,14 +70,22 @@ function SingleBlog() {
         <li>• Published on <span className="text-[#0D8888] font-medium text-sm">{publishedDate},</span></li>
         <li><span className="text-[#0D8888] font-medium text-sm">{publishedTime}</span></li>
       </ul>
-      <div>
-        <button className='h-6 bg-blue-800 text-white'>
-          <span><CiFacebook /></span>
-          <span>Share</span></button>
+      
+      {/* Social Share Buttons */}
+      <div className='flex items-center gap-4 my-4'>
+        <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer" className='h-6 bg-[#3b5998] text-white flex items-center rounded-md py-1s'>
+          <span className='w-[2.5em] flex justify-center '><span className='bg-white w-[17px] h-[17px] items-end flex justify-center rounded-full '><TiSocialFacebook className='text-[#3b5998]' /></span></span>
+          <span className='gard leading-4 text-xs px-[15px] font-medium h-full flex items-center'>Share</span>
+        </a>
+        <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer" className='h-6 bg-[#1da1f2] text-white flex items-center rounded-md py-1s'>
+          <span className='w-[2.5em] flex justify-center '><FaTwitter /></span>
+          <span className='gard leading-4 text-xs px-[15px] font-medium h-full flex items-center'>Tweet</span>
+        </a>
       </div>
+
       {/* Blog Featured Image */}
       {blog.featuredImage && (
-        <>s
+        <>
           <img
             src={blog.featuredImage}
             alt={decodedTitle}
@@ -87,6 +101,18 @@ function SingleBlog() {
 
       {/* Blog Content */}
       <div dangerouslySetInnerHTML={{ __html: contentWithIds }} className="blog-content text-sm text-[#292929]" />
+      
+      {/* Social Share Buttons Again */}
+      <div className='flex items-center gap-4 my-8'>
+        <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer" className='h-6 bg-[#3b5998] text-white flex items-center rounded-md py-1s'>
+          <span className='w-[2.5em] flex justify-center '><span className='bg-white w-[17px] h-[17px] items-end flex justify-center rounded-full '><TiSocialFacebook className='text-[#3b5998]' /></span></span>
+          <span className='gard leading-4 text-xs px-[15px] font-medium h-full flex items-center'>Share</span>
+        </a>
+        <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer" className='h-6 bg-[#1da1f2] text-white flex items-center rounded-md py-1s'>
+          <span className='w-[2.5em] flex justify-center '><FaTwitter /></span>
+          <span className='gard leading-4 text-xs px-[15px] font-medium h-full flex items-center'>Tweet</span>
+        </a>
+      </div>
 
       {/* Tags Section */}
       {blog.tags && blog.tags.length > 0 && (

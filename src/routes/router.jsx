@@ -8,6 +8,7 @@ import NewsandBlog from "../pages/NewsandBlog";
 import History from "../pages/History";
 import Series from "../pages/Series";
 import SingleBlog from "../pages/SinglePost";
+import Search from "../pages/Search";
 
 
 const router = createBrowserRouter([
@@ -23,6 +24,8 @@ const router = createBrowserRouter([
             { path: "history", element: <History /> },
             { path: "series", element: <Series /> },
             { path: "/:slug", element: <SingleBlog /> },
+            { path: "/search", element: <Search /> },
+        
         ]
     }
 ]);

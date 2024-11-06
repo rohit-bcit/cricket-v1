@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts } from '../redux/features/postSlice'; // Importing the action to fetch posts
 import SideBarCard from './SideBarCard'; // Assuming this component will display the individual posts
 import Comments from './Comments';
+import Latest from './Latest';
 
 function Sidebar() {
   const dispatch = useDispatch();
@@ -37,6 +38,7 @@ function Sidebar() {
       )}
 
       <Comments/>
+      <Latest/>
     </div>
   );
 }

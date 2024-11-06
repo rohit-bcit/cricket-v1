@@ -1,8 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Helper functions outside the slice for readability
+// Cache variables for faster data retrieval
+const postsCache = {};
+const postSlugCache = {};
 
+// Helper functions for fetching external data (same as before)
 const fetchFeaturedImage = async (mediaId) => {
   try {
     const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/media/${mediaId}`);
@@ -33,16 +36,19 @@ const fetchAuthor = async (authorId) => {
   }
 };
 
-// Asynchronous thunk actions
+// Asynchronous thunk actions with caching
 
 export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejectWithValue, getState }) => {
-  const { blogs } = getState().posts;
-  if (blogs.length > 0) {
-    return blogs;
+  // Check if posts are already cached
+  if (postsCache.posts && postsCache.timestamp && Date.now() - postsCache.timestamp < 60000) {
+    // Cache for 1 minute (60,000 ms)
+    return postsCache.posts;
   }
 
   try {
     const response = await axios.get('https://cricketscore.io/wp-json/wp/v2/posts');
+    postsCache.posts = response.data;
+    postsCache.timestamp = Date.now(); // Update cache timestamp
     return response.data;
   } catch (error) {
     return rejectWithValue(error.response ? error.response.data : error.message);
@@ -50,25 +56,34 @@ export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejec
 });
 
 export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (slug, { rejectWithValue }) => {
+  // Check if the post by slug is already cached
+  if (postSlugCache[slug]) {
+    return postSlugCache[slug];
+  }
+
   try {
     const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/posts?slug=${slug}`);
     if (response.data.length > 0) {
       const blogData = response.data[0];
       const postDetails = { ...blogData };
 
-      const [featuredImage, tags, author] = await Promise.all([
+      const [featuredImage, tags, author] = await Promise.all([ 
         blogData.featured_media ? fetchFeaturedImage(blogData.featured_media) : null,
         blogData.tags ? fetchTags(blogData.tags) : [],
-        blogData.author ? fetchAuthor(blogData.author) : null,
+        blogData.author ? fetchAuthor(blogData.author) : null
       ]);
 
-      return {
+      const postWithDetails = {
         ...postDetails,
         featuredImage: featuredImage?.imageUrl,
         imageCaption: featuredImage?.caption,
         tags,
-        author,
+        author
       };
+
+      // Cache the post by slug
+      postSlugCache[slug] = postWithDetails;
+      return postWithDetails;
     } else {
       return rejectWithValue('Post not found');
     }
@@ -77,11 +92,25 @@ export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (
   }
 });
 
-// Initial state
+// New action to search posts by query
+export const searchPosts = createAsyncThunk(
+  'posts/searchPosts',
+  async (query, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/posts?search=${query}`);
+      return response.data; // Returning the posts from the API
+    } catch (error) {
+      // If an error occurs, handle it gracefully by returning a rejected action
+      return rejectWithValue(error.response ? error.response.data : error.message);
+    }
+  }
+);
 
+// Initial state
 const initialState = {
   blogs: [],
   blog: null,
+  searchResults: [], // Store search results here
   loading: false,
   error: null,
 };
@@ -92,6 +121,7 @@ const postsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Handle fetchPosts action
       .addCase(fetchPosts.pending, (state) => {
         state.loading = true;
       })
@@ -103,6 +133,7 @@ const postsSlice = createSlice({
         state.loading = false;
         state.error = action.payload || action.error.message;
       })
+      // Handle fetchPostBySlug action
       .addCase(fetchPostBySlug.pending, (state) => {
         state.loading = true;
       })
@@ -111,6 +142,18 @@ const postsSlice = createSlice({
         state.blog = action.payload;
       })
       .addCase(fetchPostBySlug.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      // Handle searchPosts action
+      .addCase(searchPosts.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(searchPosts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.searchResults = action.payload; // Store the search results
+      })
+      .addCase(searchPosts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
       });

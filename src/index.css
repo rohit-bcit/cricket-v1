@@ -77,3 +77,8 @@ h3.elementor-heading-title {
 #ez-toc-container {
   display: none;
 }
+
+.gard {
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, .12), transparent) !important;
+ 
+}
