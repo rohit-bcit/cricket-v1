@@ -1,8 +1,46 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Asynchronous thunk action for fetching all posts
-export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejectWithValue }) => {
+// Helper functions outside the slice for readability
+
+const fetchFeaturedImage = async (mediaId) => {
+  try {
+    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/media/${mediaId}`);
+    return { imageUrl: response.data.source_url, caption: response.data.caption.rendered };
+  } catch (error) {
+    throw new Error('Error fetching featured image: ' + (error.response?.data || error.message));
+  }
+};
+
+const fetchTags = async (tagIds) => {
+  try {
+    const tags = await Promise.all(tagIds.map(async (tagId) => {
+      const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/tags/${tagId}`);
+      return response.data.name;
+    }));
+    return tags;
+  } catch (error) {
+    throw new Error('Error fetching tags: ' + (error.response?.data || error.message));
+  }
+};
+
+const fetchAuthor = async (authorId) => {
+  try {
+    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/users/${authorId}`);
+    return response.data.name;
+  } catch (error) {
+    throw new Error('Error fetching author: ' + (error.response?.data || error.message));
+  }
+};
+
+// Asynchronous thunk actions
+
+export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejectWithValue, getState }) => {
+  const { blogs } = getState().posts;
+  if (blogs.length > 0) {
+    return blogs;
+  }
+
   try {
     const response = await axios.get('https://cricketscore.io/wp-json/wp/v2/posts');
     return response.data;
@@ -11,51 +49,26 @@ export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejec
   }
 });
 
-// Helper function for fetching featured image
-const fetchFeaturedImage = async (mediaId) => {
-  const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/media/${mediaId}`);
-  return { imageUrl: response.data.source_url, caption: response.data.caption.rendered };
-};
-
-// Helper function for fetching tags
-const fetchTags = async (tagIds) => {
-  const tags = await Promise.all(tagIds.map(async (tagId) => {
-    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/tags/${tagId}`);
-    return response.data.name;
-  }));
-  return tags;
-};
-
-// Helper function for fetching author data
-const fetchAuthor = async (authorId) => {
-  const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/users/${authorId}`);
-  return response.data.name;
-};
-
-// Asynchronous thunk action for fetching a single post by slug
 export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (slug, { rejectWithValue }) => {
   try {
     const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/posts?slug=${slug}`);
     if (response.data.length > 0) {
       const blogData = response.data[0];
-      let postDetails = { ...blogData };
+      const postDetails = { ...blogData };
 
-      if (blogData.featured_media) {
-        const { imageUrl, caption } = await fetchFeaturedImage(blogData.featured_media);
-        postDetails = { ...postDetails, featuredImage: imageUrl, imageCaption: caption };
-      }
+      const [featuredImage, tags, author] = await Promise.all([
+        blogData.featured_media ? fetchFeaturedImage(blogData.featured_media) : null,
+        blogData.tags ? fetchTags(blogData.tags) : [],
+        blogData.author ? fetchAuthor(blogData.author) : null,
+      ]);
 
-      if (blogData.tags && blogData.tags.length > 0) {
-        const tags = await fetchTags(blogData.tags);
-        postDetails = { ...postDetails, tags };
-      }
-
-      if (blogData.author) {
-        const author = await fetchAuthor(blogData.author);
-        postDetails = { ...postDetails, author };
-      }
-
-      return postDetails;
+      return {
+        ...postDetails,
+        featuredImage: featuredImage?.imageUrl,
+        imageCaption: featuredImage?.caption,
+        tags,
+        author,
+      };
     } else {
       return rejectWithValue('Post not found');
     }
@@ -65,6 +78,7 @@ export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (
 });
 
 // Initial state
+
 const initialState = {
   blogs: [],
   blog: null,
@@ -72,7 +86,6 @@ const initialState = {
   error: null,
 };
 
-// Create slice
 const postsSlice = createSlice({
   name: 'posts',
   initialState,

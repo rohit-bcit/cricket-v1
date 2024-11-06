@@ -58,3 +58,22 @@ input:focus::placeholder {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+
+h2.elementor-heading-title {
+  font-size: 16px;
+  color: #0d8888;
+  line-height: 1.2;
+  font-weight: 500;
+  margin: 15px 0px;
+}
+h3.elementor-heading-title {
+  font-size: 16px;
+  color: #0d8888;
+  line-height: 1.2;
+  font-weight: 500;
+  margin: 15px 0px;
+}
+#ez-toc-container {
+  display: none;
+}
