@@ -10,7 +10,8 @@ function Sidebar() {
 
   // Accessing Redux state
   const { blogs, loading, error } = useSelector((state) => state.posts);
-
+ 
+ 
   useEffect(() => {
     // Dispatch the action to fetch posts when Sidebar component mounts and if blogs are not already loaded
     if (blogs.length === 0 && !loading) {

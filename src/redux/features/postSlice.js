@@ -3,108 +3,148 @@ import axios from 'axios';
 
 // Cache variables for faster data retrieval
 const postsCache = {};
-const postSlugCache = {};
+const postsSlugCache = {};
 
-// Helper functions for fetching external data (same as before)
-const fetchFeaturedImage = async (mediaId) => {
+// Helper function to make a GraphQL request
+const fetchGraphQL = async (query) => {
   try {
-    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/media/${mediaId}`);
-    return { imageUrl: response.data.source_url, caption: response.data.caption.rendered };
+    const response = await axios.post('https://cricketscore.io/graphql', {
+      query,
+    });
+    return response.data.data;
   } catch (error) {
-    throw new Error('Error fetching featured image: ' + (error.response?.data || error.message));
-  }
-};
-
-const fetchTags = async (tagIds) => {
-  try {
-    const tags = await Promise.all(tagIds.map(async (tagId) => {
-      const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/tags/${tagId}`);
-      return response.data.name;
-    }));
-    return tags;
-  } catch (error) {
-    throw new Error('Error fetching tags: ' + (error.response?.data || error.message));
-  }
-};
-
-const fetchAuthor = async (authorId) => {
-  try {
-    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/users/${authorId}`);
-    return response.data.name;
-  } catch (error) {
-    throw new Error('Error fetching author: ' + (error.response?.data || error.message));
+    console.error('Error fetching data from GraphQL:', error); // Log any error encountered
+    throw new Error('Error fetching data from GraphQL: ' + (error.response?.data || error.message));
   }
 };
 
 // Asynchronous thunk actions with caching
-
 export const fetchPosts = createAsyncThunk('posts/fetchPosts', async (_, { rejectWithValue, getState }) => {
-  // Check if posts are already cached
   if (postsCache.posts && postsCache.timestamp && Date.now() - postsCache.timestamp < 60000) {
-    // Cache for 1 minute (60,000 ms)
     return postsCache.posts;
   }
 
+  const query = `
+    query {
+      posts(first: 10) {
+        nodes {
+          id
+          title
+          excerpt
+          slug
+          date
+          featuredImage {
+            node {
+              sourceUrl
+            }
+          }
+        }
+      }
+    }
+  `;
+
   try {
-    const response = await axios.get('https://cricketscore.io/wp-json/wp/v2/posts');
-    postsCache.posts = response.data;
-    postsCache.timestamp = Date.now(); // Update cache timestamp
-    return response.data;
+    const data = await fetchGraphQL(query);
+    const posts = data.posts.nodes;
+
+    // Cache posts and update the timestamp
+    postsCache.posts = posts;
+    postsCache.timestamp = Date.now();
+
+    return posts;
   } catch (error) {
-    return rejectWithValue(error.response ? error.response.data : error.message);
+    return rejectWithValue(error.message);
   }
 });
 
+// Fetch single post by slug
 export const fetchPostBySlug = createAsyncThunk('posts/fetchPostBySlug', async (slug, { rejectWithValue }) => {
-  // Check if the post by slug is already cached
-  if (postSlugCache[slug]) {
-    return postSlugCache[slug];
+  if (postsSlugCache[slug]) {
+    return postsSlugCache[slug];
   }
 
+  const query = `
+    query {
+      post(id: "${slug}", idType: SLUG) {
+        id
+        title
+        content
+        excerpt
+        slug
+        date
+        featuredImage {
+          node {
+            sourceUrl
+            altText
+            caption
+          }
+        }
+        tags {
+          nodes {
+            name
+          }
+        }
+        author {
+          node {
+            name
+          }
+        }
+      }
+    }
+  `;
+
   try {
-    const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/posts?slug=${slug}`);
-    if (response.data.length > 0) {
-      const blogData = response.data[0];
-      const postDetails = { ...blogData };
+    const data = await fetchGraphQL(query);
+    const post = data.post;
 
-      const [featuredImage, tags, author] = await Promise.all([ 
-        blogData.featured_media ? fetchFeaturedImage(blogData.featured_media) : null,
-        blogData.tags ? fetchTags(blogData.tags) : [],
-        blogData.author ? fetchAuthor(blogData.author) : null
-      ]);
-
-      const postWithDetails = {
-        ...postDetails,
-        featuredImage: featuredImage?.imageUrl,
-        imageCaption: featuredImage?.caption,
-        tags,
-        author
-      };
-
-      // Cache the post by slug
-      postSlugCache[slug] = postWithDetails;
-      return postWithDetails;
-    } else {
+    if (!post) {
       return rejectWithValue('Post not found');
     }
+
+    const postWithDetails = {
+      ...post,
+      featuredImage: post.featuredImage?.node?.sourceUrl,
+      imageAlt: post.featuredImage?.node?.altText,
+      tags: post.tags?.nodes.map(tag => tag.name),
+      author: post.author?.node?.name,
+    };
+
+    postsSlugCache[slug] = postWithDetails;
+
+    return postWithDetails;
   } catch (error) {
-    return rejectWithValue(error.response ? error.response.data : error.message);
+    return rejectWithValue(error.message);
   }
 });
 
-// New action to search posts by query
-export const searchPosts = createAsyncThunk(
-  'posts/searchPosts',
-  async (query, { rejectWithValue }) => {
-    try {
-      const response = await axios.get(`https://cricketscore.io/wp-json/wp/v2/posts?search=${query}`);
-      return response.data; // Returning the posts from the API
-    } catch (error) {
-      // If an error occurs, handle it gracefully by returning a rejected action
-      return rejectWithValue(error.response ? error.response.data : error.message);
+// Search posts by query
+export const searchPosts = createAsyncThunk('posts/searchPosts', async (query, { rejectWithValue }) => {
+  const gqlQuery = `
+    query {
+      posts(where: { search: "${query}" }) {
+        nodes {
+          id
+          title
+          excerpt
+          slug
+          date
+          featuredImage {
+            node {
+              sourceUrl
+            }
+          }
+        }
+      }
     }
+  `;
+
+  try {
+    const data = await fetchGraphQL(gqlQuery);
+    return data.posts.nodes;
+  } catch (error) {
+    return rejectWithValue(error.message);
   }
-);
+});
 
 // Initial state
 const initialState = {
@@ -151,7 +191,7 @@ const postsSlice = createSlice({
       })
       .addCase(searchPosts.fulfilled, (state, action) => {
         state.loading = false;
-        state.searchResults = action.payload; // Store the search results
+        state.searchResults = action.payload;
       })
       .addCase(searchPosts.rejected, (state, action) => {
         state.loading = false;

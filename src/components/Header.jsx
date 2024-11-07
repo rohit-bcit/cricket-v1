@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/img/header-img/cricketscore-logo.png';
 import menu from '../assets/img/header-img/cricket-menu.svg';
@@ -11,43 +11,76 @@ import { searchPosts } from '../redux/features/postSlice';
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState(''); // Manage search query state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState(''); // Added state for debounced query
     const dispatch = useDispatch();
-    const navigate = useNavigate(); // To handle navigation
+    const navigate = useNavigate(); 
 
     const { searchResults, loading, error } = useSelector((state) => state.posts);
 
+    // Toggle menu visibility
     const toggleMenu = () => {
         setIsMenuOpen(prev => !prev);
-        if (isSearchOpen) setIsSearchOpen(false);
+        if (isSearchOpen) setIsSearchOpen(false);  // Close search input when menu is toggled
     };
 
-    const handleClickOutside = (event) => {
-        if (!event.target.closest('.search-container') && isSearchOpen) {
+    // Handle outside click to close search bar
+    const handleClickOutside = useCallback((e) => {
+        if (!e.target.closest('.search-container') && isSearchOpen) {
             setIsSearchOpen(false);
         }
-    };
-
-    useEffect(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
     }, [isSearchOpen]);
 
-    // Handle search input change
+    useEffect(() => {
+        if (isSearchOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        // Clean up the event listener
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isSearchOpen, handleClickOutside]);
+
+    // Handle search input change and debounce it
     const handleSearchChange = (e) => {
-        const query = e.target.value;
-        setSearchQuery(query);
-        if (query.length > 2) {
-            dispatch(searchPosts(query)); // Dispatch searchPosts action when query length is greater than 2
+        setSearchQuery(e.target.value);
+    };
+
+    // Debounced search query effect
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 500); // Delay to debounce
+
+        return () => clearTimeout(timeoutId); // Cleanup timeout on each render
+    }, [searchQuery]);
+
+    // Dispatch the search action only if the debounced query length > 2
+    useEffect(() => {
+        if (debouncedQuery.length > 2) {
+            dispatch(searchPosts(debouncedQuery)); // Dispatch the search action
+            navigate(`/search?query=${debouncedQuery}`); // Redirect to the search results page
+        }
+    }, [debouncedQuery, dispatch, navigate]);
+
+    // Handle search submit (either by Enter key or by clicking the search icon)
+    const handleSearchSubmit = () => {
+        if (searchQuery.length > 2) {
+            dispatch(searchPosts(searchQuery)); // Dispatch the search action
+            navigate(`/search?query=${searchQuery}`); // Redirect to the search results page with the query
+            setSearchQuery(''); // Clear the search query after submission
         }
     };
 
-    // Handle Enter key to redirect to the search results page
-    const handleSearchSubmit = (e) => {
-        if (e.key === 'Enter' && searchQuery.length > 2) {
-            navigate(`/search?query=${searchQuery}`); // Redirect to the search results page with the query
+    // Handle search icon click
+    const handleSearchIconClick = () => {
+        if (isSearchOpen) {
+            // If search bar is open, trigger the search functionality
+            handleSearchSubmit();
+        } else {
+            // If search bar is closed, toggle search input visibility
+            setIsSearchOpen(true);
         }
     };
 
@@ -61,18 +94,19 @@ const Header = () => {
                     <img className='w-full' src={logo} alt="Logo" />
                 </Link>
             </div>
+
+            {/* Search Input */}
             <div className='flex items-center gap-5 relative'>
                 <div className={`border border-white flex items-center py-2 w-fit px-2 justify-center search-container ${isSearchOpen ? 'rounded-md' : 'rounded-full'}`}>
                     <input
                         type="text"
                         placeholder="Search..."
                         className={`bg-transparent py-0 outline-none border-none text-white transition-all duration-300 ease-in-out text-sm ${isSearchOpen ? 'w-full min-w-[100px]' : 'w-0'} overflow-hidden`}
-                        onFocus={() => setIsSearchOpen(true)}
                         onChange={handleSearchChange}
                         value={searchQuery}
-                        onKeyDown={handleSearchSubmit}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
                     />
-                    <span onClick={() => setIsSearchOpen(true)}>
+                    <span onClick={handleSearchIconClick}>
                         <CiSearch size={20} className='text-white' />
                     </span>
                 </div>
@@ -80,6 +114,8 @@ const Header = () => {
                     <img className='w-full' src={profile} alt="Profile" />
                 </div>
             </div>
+
+            {/* Menu Dropdown */}
             {isMenuOpen && (
                 <div className='absolute top-20 left-0 right-0 bg-white p-4 rounded-md z-10'>
                     <ul className='flex flex-col gap-2'>
